@@ -4,12 +4,13 @@ import dash_html_components as html
 from dash.dependencies import Input, Output
 import plotly.graph_objs as go
 import numpy as np
+import dash_reusable_components as drc
 
 app = dash.Dash()
 
 PCheatInit = 0.1
 UInit = 0.1
-PhaseSize = 500
+PhaseSize = 400
 
 # Timeline (temp)
 N = 100
@@ -43,72 +44,85 @@ timedata = [trace0, trace1, trace2]
 # timeline
 # some statistics (metrics) on the side?
 app.layout = html.Div([
-    dcc.Checklist(
-        id="config-options",
-        options=[
-            {'label': 'Adaptive Rulers', 'value': 'adapt_rul'},
-            {'label': 'Adaptive Agents', 'value': 'adapt_ag'},
-        ],
-        values=['adapt_rul']
+    # Banner display
+    html.Div([
+        html.H2(
+            'Disobedience as a Mechanism of Change',
+            id='title'
+        ),
+    ],
+             className="banner"
     ),
-    html.Div(
-        style={'margin': '5em'},
-        children=[
-            dcc.Graph(id='phase-plot'),
+    # Body
+    html.Div(className="container", children=[
+        html.Div(className='row', children=[
+            html.Div(className='five columns', children=[
+                drc.Card([
+                    drc.NamedInlineCheckboxes(
+                        name="Options",
+                        short="config-options",
+                        options=[
+                            {'label': 'Adaptive Rulers', 'value': 'adapt_rul'},
+                            {'label': 'Adaptive Agents', 'value': 'adapt_ag'},
+                        ],
+                        vals=['adapt_rul']
+                    ),
+                    drc.NamedSlider(
+                        name="Allocation Unfairness",
+                        id='slider-y',
+                        marks={i/10: '{}'.format(i/10) for i in range(10)},
+                        min=0,
+                        max=1,
+                        value=UInit,
+                        step=0.1,
+                        updatemode='drag',
+                        vertical=False
+                    ),
+                    drc.NamedSlider(
+                        name="Non-Compliance",
+                        id='slider-x',
+                        marks={i/10: '{}'.format(i/10) for i in range(10)},
+                        min=0,
+                        max=1,
+                        value=PCheatInit,
+                        step=0.1,
+                        updatemode='drag'
+                    ),
+                ]),
+
+
+                dcc.Graph(id='phase-plot',
+                          config={'displayModeBar': False}),
+
+            ]),
+
             html.Div(
-                dcc.Slider(
-                    id='slider-y',
-                    marks={i/10: '{}'.format(i/10) for i in range(10)},
-                    min=0,
-                    max=1,
-                    value=UInit,
-                    step=0.1,
-                    updatemode='drag',
-                    vertical=False
-                ),
-                style={'margin': '2em'}
-            ),
-            html.Div(
-                dcc.Slider(
-                    id='slider-x',
-                    marks={i/10: '{}'.format(i/10) for i in range(10)},
-                    min=0,
-                    max=1,
-                    value=PCheatInit,
-                    step=0.1,
-                    updatemode='drag'
-                ),
-                style={'margin': '2em'}
-            ),
-        ]
-    ),
-    dcc.Graph(
-        id='timeline',
-        figure=go.Figure(
-            data=timedata,
-            layout={
-                'title': 'Timeline'
-            }
-        )
-    ),
-    # dcc.Input(id='my-id', value='initial value', type='text'),
-    # dcc.Input(id='my-id2', value='ble', type='text'),
-    html.Div(id='my-div')
+                className='seven columns',
+                style={'float': 'right'},
+                children=[
+                    dcc.Graph(
+                        id='timeline',
+                        figure=go.Figure(
+                            data=timedata,
+                            layout={'title': 'Timeline'}
+                        )
+                    ),
+                    html.Button(
+                        'Run Simulation',
+                        id='button-run-operation',
+                        style={'margin-right': '10px', 'margin-top': '5px'}
+                    ),
+                ]
+            )
+        ])
+    ])
 ])
 
 
 @app.callback(
-    Output(component_id='my-div', component_property='children'),
-    [Input(component_id='slider-x', component_property='value')]
-)
-def update_output_div(input_value):
-    return 'You\'ve entered "{}"'.format(input_value)
-
-
-@app.callback(
-    dash.dependencies.Output('phase-plot', 'figure'),
-    [dash.dependencies.Input('slider-x', 'value'),
-     dash.dependencies.Input('slider-y', 'value')])
+    Output('phase-plot', 'figure'),
+    [Input('slider-x', 'value'),
+     Input('slider-y', 'value')])
 def update_figure(PCheat, U):
     return {
         'data': [
@@ -150,8 +164,20 @@ def update_figure(PCheat, U):
     }
 
 
-app.css.append_css(
-    {"external_url": "https://codepen.io/chriddyp/pen/bWLwgP.css"})
+external_css = [
+    # Normalize the CSS
+    "https://cdnjs.cloudflare.com/ajax/libs/normalize/7.0.0/normalize.min.css",
+    # Fonts
+    "https://fonts.googleapis.com/css?family=Open+Sans|Roboto"
+    "https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css",
+    # For production
+    "https://cdn.rawgit.com/xhlulu/0acba79000a3fd1e6f552ed82edb8a64/raw/dash_template.css",
+    # Custom CSS
+    "https://cdn.rawgit.com/xhlulu/dash-image-processing/1d2ec55e/custom_styles.css",
+]
+
+for css in external_css:
+    app.css.append_css({"external_url": css})
 
 if __name__ == '__main__':
     app.run_server()
@@ -167,5 +193,6 @@ if __name__ == '__main__':
 # 1 - python call erlang as command line argument
 # 2 - erlang outputs json to ... (file? database? stdouot captured by python?)
 # 3 - python reads/receive erlang's output and feed it to graph
-#       - how to do incremental graph? Maybe by erasing current partial and plotting all the data all the time?
+#       - how to do incremental graph? Maybe by erasing current partial and
+#       plotting all the data all the time?
 # 4 - implement reset function, etc..
