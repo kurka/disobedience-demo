@@ -10,12 +10,12 @@ app = dash.Dash()
 
 PCheatInit = 0.1
 UInit = 0.1
-PhaseSize = 400
+PhaseSize = 450
 
 # Timeline (temp)
 N = 100
 
-random_x = np.linspace(0, 1, N)
+random_x = np.arange(1, N+1)
 random_y0 = np.random.randn(N)+10
 random_y1 = np.random.randn(N)+5
 random_y2 = np.random.randn(N)+15
@@ -102,11 +102,9 @@ app.layout = html.Div([
                 children=[
                     dcc.Graph(
                         id='timeline',
-                        figure=go.Figure(
-                            data=timedata,
-                            layout={'title': 'Timeline'}
-                        )
                     ),
+                    dcc.Interval(id='timeline-update',
+                                 interval=1000, n_intervals=0),
                     html.Button(
                         'Run Simulation',
                         id='button-run-operation',
@@ -117,6 +115,27 @@ app.layout = html.Div([
         ])
     ])
 ])
+
+
+@app.callback(Output('timeline', 'figure'),
+              [Input('timeline-update', 'n_intervals')])
+def gen_timeline(interval):
+    # FIXME: gambi
+    subtraces = [{'x': t['x'][0:interval],
+                  'y': t['y'][0:interval],
+                  'name': t['name']} for t in timedata]
+    return go.Figure(
+        data=subtraces,
+        layout={'title': 'Timeline',
+                'xaxis': {'title': 'step'}}
+    )
+
+
+@app.callback(Output('timeline-update', 'n_intervals'),
+              [Input('button-run-operation', 'n_clicks')])
+def gen_timeline(interval):
+    # resets the tineline
+    return 0
 
 
 @app.callback(
