@@ -3,46 +3,28 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
 import plotly.graph_objs as go
-import numpy as np
+import pandas as pd
 import dash_reusable_components as drc
 
-app = dash.Dash(__name__)
 
 PCheatInit = 0.3
 UInit = 0.25
 PhaseSize = 450
 
 # Timeline (temp)
-N = 100
 
-random_x = np.arange(1, N+1)
-random_y0 = np.random.randn(N)+10
-random_y1 = np.random.randn(N)+5
-random_y2 = np.random.randn(N)+15
-
-# Create traces
-trace0 = go.Scatter(
-    x=random_x,
-    y=random_y0,
-    name='Disobedience'
-)
-trace1 = go.Scatter(
-    x=random_x,
-    y=random_y1,
-    name='Satisfaction'
-)
-trace2 = go.Scatter(
-    x=random_x,
-    y=random_y2,
-    name='Inequality'
-)
-timedata = [trace0, trace1, trace2]
+fakemode = True
+fakedata = pd.read_csv("sample.csv")
 
 # layout:
 # options (checkboxes)
 # phase shift graph
 # timeline
 # some statistics (metrics) on the side?
+# some presets configurations
+
+
+app = dash.Dash(__name__)
 app.layout = html.Div([
     # Banner display
     html.Div([
@@ -105,6 +87,8 @@ app.layout = html.Div([
                     ),
                     dcc.Interval(id='timeline-update',
                                  interval=1000, n_intervals=0),
+                    # Hidden Div storing JSON-serialized data
+                    html.Div(id='timeline-data', style={'display': 'none'}),
                     html.Button(
                         'Run Simulation',
                         id='button-run-operation',
@@ -116,26 +100,50 @@ app.layout = html.Div([
     ])
 ])
 
+if fakemode:  # here is one I made earlier...
+    @app.callback(
+        Output('timeline-data', 'children'),
+        [Input('timeline-update', 'n_intervals')])
+    def gen_timeline_data(interval):
+        selection = fakedata[:5*interval]
+        return selection.to_json(orient='split')
 
-@app.callback(Output('timeline', 'figure'),
-              [Input('timeline-update', 'n_intervals')])
-def gen_timeline(interval):
-    # FIXME: gambi
-    subtraces = [{'x': t['x'][0:interval],
-                  'y': t['y'][0:interval],
-                  'name': t['name']} for t in timedata]
+    @app.callback(
+        Output('timeline-update', 'n_intervals'),
+        [Input('button-run-operation', 'n_clicks')])
+    def restart_simulation(interval):
+        # resets the tineline
+        return 0
+
+
+def col2trace(xdata, ydata, title):
+    return go.Scatter(x=xdata, y=ydata, name=title)
+
+
+@app.callback(
+    Output('timeline', 'figure'),
+    [Input('timeline-data', 'children')])
+def update_timeline(timeline_json):
+    # TODO: check if erlang will send this same orientation
+    timeline_df = pd.read_json(timeline_json, orient='split')
+    tsteps = timeline_df.index+1
+
+    timeline_keys = [
+        ("alloc_unfairness", "Alloc Unfairness (U)"),
+        ("inequality", "Inequality"),
+        ("people_noncompliance", "Disobedience"),
+        ("satisf_clique", "Rulers' Satisfaction"),
+        ("satisf_people", "People's Satisfaction")
+    ]
+
+    traces = [col2trace(tsteps, timeline_df[tk[0]], tk[1])
+              for tk in timeline_keys]
+
     return go.Figure(
-        data=subtraces,
+        data=traces,
         layout={'title': 'Timeline',
-                'xaxis': {'title': 'step'}}
+                'xaxis': {'title': 'turn'}}
     )
-
-
-@app.callback(Output('timeline-update', 'n_intervals'),
-              [Input('button-run-operation', 'n_clicks')])
-def restart_simulation(interval):
-    # resets the tineline
-    return 0
 
 
 @app.callback(
