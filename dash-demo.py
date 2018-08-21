@@ -6,10 +6,10 @@ import plotly.graph_objs as go
 import numpy as np
 import dash_reusable_components as drc
 
-app = dash.Dash()
+app = dash.Dash(__name__)
 
-PCheatInit = 0.1
-UInit = 0.1
+PCheatInit = 0.3
+UInit = 0.25
 PhaseSize = 450
 
 # Timeline (temp)
@@ -70,22 +70,22 @@ app.layout = html.Div([
                     drc.NamedSlider(
                         name="Allocation Unfairness",
                         id='slider-y',
-                        marks={i/10: '{}'.format(i/10) for i in range(10)},
+                        marks={i/10: i/10 for i in range(10)},
                         min=0,
                         max=1,
                         value=UInit,
-                        step=0.1,
+                        step=0.01,
                         updatemode='drag',
                         vertical=False
                     ),
                     drc.NamedSlider(
                         name="Non-Compliance",
                         id='slider-x',
-                        marks={i/10: '{}'.format(i/10) for i in range(10)},
+                        marks={i/10: i/10 for i in range(10)},
                         min=0,
                         max=1,
                         value=PCheatInit,
-                        step=0.1,
+                        step=0.01,
                         updatemode='drag'
                     ),
                 ]),
@@ -133,7 +133,7 @@ def gen_timeline(interval):
 
 @app.callback(Output('timeline-update', 'n_intervals'),
               [Input('button-run-operation', 'n_clicks')])
-def gen_timeline(interval):
+def restart_simulation(interval):
     # resets the tineline
     return 0
 
@@ -184,22 +184,19 @@ def update_figure(PCheat, U):
 
 
 external_css = [
-    # Normalize the CSS
-    "https://cdnjs.cloudflare.com/ajax/libs/normalize/7.0.0/normalize.min.css",
-    # Fonts
-    "https://fonts.googleapis.com/css?family=Open+Sans|Roboto"
+    "https://cdnjs.cloudflare.com/ajax/libs/normalize/7.0.0/normalize.min.css",  # Normalize the CSS
+    "https://fonts.googleapis.com/css?family=Open+Sans|Roboto"  # Fonts
     "https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css",
-    # For production
     "https://cdn.rawgit.com/xhlulu/0acba79000a3fd1e6f552ed82edb8a64/raw/dash_template.css",
-    # Custom CSS
-    "https://cdn.rawgit.com/xhlulu/dash-image-processing/1d2ec55e/custom_styles.css",
+    "https://rawgit.com/plotly/dash-live-model-training/master/custom_styles.css"
 ]
 
 for css in external_css:
     app.css.append_css({"external_url": css})
 
+
 if __name__ == '__main__':
-    app.run_server()
+    app.run_server(debug=True)
 
 # Open questions / TODOs:
 # - How to make an interactive phase plot?

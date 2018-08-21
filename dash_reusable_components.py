@@ -165,11 +165,6 @@ def Card(children, **kwargs):
 
 
 def NamedSlider(name, id, min, max, step, value, marks=None, **kwargs):
-    if marks:
-        step = None
-    else:
-        marks = {i: i for i in range(min, max + 1, step)}
-
     return html.Div(
         style={'margin': '25px 5px 30px 0px'},
         children=[
