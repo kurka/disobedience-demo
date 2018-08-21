@@ -11,18 +11,8 @@ PCheatInit = 0.3
 UInit = 0.25
 PhaseSize = 450
 
-# Timeline (temp)
-
 fakemode = True
 fakedata = pd.read_csv("sample.csv")
-
-# layout:
-# options (checkboxes)
-# phase shift graph
-# timeline
-# some statistics (metrics) on the side?
-# some presets configurations
-
 
 app = dash.Dash(__name__)
 app.layout = html.Div([
@@ -207,8 +197,13 @@ if __name__ == '__main__':
     app.run_server(debug=True)
 
 # Open questions / TODOs:
-# - How to make an interactive phase plot?
-# - read more documentation of graph
+# - Interface:
+#    - center exploratory space
+#    - movable exploratory space
+#    - live changes / reset simulation / pause button
+#    - presets configurations
+#    - timeline updates exploratory space
+#    - some statistics (metrics) on the side?
 # - How to communicate from Erlang to program?
 # - Write python function that calls erlang program and reads json
 
@@ -217,6 +212,4 @@ if __name__ == '__main__':
 # 1 - python call erlang as command line argument
 # 2 - erlang outputs json to ... (file? database? stdouot captured by python?)
 # 3 - python reads/receive erlang's output and feed it to graph
-#       - how to do incremental graph? Maybe by erasing current partial and
-#       plotting all the data all the time?
 # 4 - implement reset function, etc..
