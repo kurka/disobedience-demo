@@ -32,13 +32,17 @@ app.layout = html.Div([
         html.Div(className='row', children=[
             html.Div(className='five columns', children=[
                 drc.Card([
+                    html.H4(
+                        'Setup',
+                        id='card-title'
+                    ),
                     drc.NamedInlineCheckboxes(
                         name="Features",
                         short="config-options",
                         options=[
                             {'label': 'Forgiveness', 'value': 'forg'},
-                            {'label': 'Rulers Corruption',
-                             'value': 'adapt_rul'}, #FIXME: 3 states
+                            {'label': 'Rulers\' Corruption',
+                             'value': 'adapt_rul'},  # FIXME: 3 states
                             {'label': 'Reformation', 'value': 'reform'},
                         ],
                         vals=['forg', 'adapt_rul', 'reform']
@@ -58,7 +62,7 @@ app.layout = html.Div([
                         name="Initial Non-Compliance",
                         id='slider-pcheat',
                         marks={i/10: i/10 for i in range(10)},
-                        min=0,
+                        min=0.01,
                         max=1,
                         value=PCheatInit,
                         step=0.01,
@@ -88,11 +92,11 @@ app.layout = html.Div([
                         id='button-run',
                         style={'margin-right': '10px', 'margin-top': '5px'}
                     ),
-                    html.Button(
-                        'Pause',
-                        id='button-pause',
-                        style={'margin-top': '5px'}
-                    )
+                    # html.Button(
+                    #     'Pause',
+                    #     id='button-pause',
+                    #     style={'margin-top': '5px'}
+                    # )
                 ]
             )
         ])
@@ -126,9 +130,11 @@ def gen_timeline_data(_, u, disob, features):
         reform = 'on' if 'reform' in features else 'off'
         adapt_rul = 'fixed' if 'adapt_rul' in features else 'off'
 
+        # FIXME: in future dont need to always compile (move .beam?)
         sim_cmd = ("erl -compile pardon -compile aux -compile dataio && "
-                   "erl -noshell -s pardon main {} {} {} {} {} political"
-                   " -s init stop").format(u, disob, forg, reform, adapt_rul)
+                   "erl -noshell -s pardon main {:.2f} {:.2f} {} "
+                   "{} {} political -s init stop").format(u, disob, forg,
+                                                          reform, adapt_rul)
         print("Starting new execution...")
         print(sim_cmd)
         os.system(sim_cmd)
@@ -172,19 +178,15 @@ def update_timeline(interval, timeline_json):
     )
 
 
-@app.callback(
-    Output('phase-plot', 'figure'),
-    [Input('slider-pcheat', 'value'),
-     Input('slider-u', 'value')])
-def update_figure(PCheat, U):
+def fig_phaseplot(PCheat, U):
     return {
         'data': [
             go.Scatter(
-                x=[PCheat],
-                y=[U],
+                x=[U],
+                y=[PCheat],
                 mode='markers',
                 marker=dict(
-                    size=20
+                    size=30
                 )
             )
         ],
@@ -215,6 +217,25 @@ def update_figure(PCheat, U):
             )
         )
     }
+
+
+@app.callback(
+    Output('phase-plot', 'figure'),
+    [Input('timeline-update', 'n_intervals')],
+    [State('timeline-data', 'children')])
+def update_phaseplot(interval, timeline_json):
+    timeline_data = pd.read_json(timeline_json, orient='split')
+    last_timeline_row = timeline_data.iloc[5*interval]
+    return fig_phaseplot(last_timeline_row["people_noncompliance"],
+                         last_timeline_row["alloc_unfairness"])
+
+
+# @app.callback(
+#     Output('phase-plot', 'figure'),
+#     [Input('slider-pcheat', 'value'),
+#      Input('slider-u', 'value')])
+# def set_phaseplot(PCheat, U):
+#     return fig_phaseplot(PCheat, U)
 
 
 external_css = [
