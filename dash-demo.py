@@ -126,7 +126,7 @@ def gen_timeline_data(_, u, disob, features):
         # Forg - {off, general, [oppresion]}
         # Reform - {on, off}
         # AdaptRul - {off, fixed, adaptive} TODO: dropdown?
-        forg = 'general' if 'forg' in features else 'oppression'
+        forg = 'general' if 'forg' in features else 'off'
         reform = 'on' if 'reform' in features else 'off'
         adapt_rul = 'fixed' if 'adapt_rul' in features else 'off'
 
