@@ -33,17 +33,19 @@ app.layout = html.Div([
             html.Div(className='five columns', children=[
                 drc.Card([
                     drc.NamedInlineCheckboxes(
-                        name="Options",
+                        name="Features",
                         short="config-options",
                         options=[
-                            {'label': 'Adaptive Rulers', 'value': 'adapt_rul'},
-                            {'label': 'Adaptive Agents', 'value': 'adapt_ag'},
+                            {'label': 'Forgiveness', 'value': 'forg'},
+                            {'label': 'Rulers Corruption',
+                             'value': 'adapt_rul'}, #FIXME: 3 states
+                            {'label': 'Reformation', 'value': 'reform'},
                         ],
-                        vals=['adapt_rul']
+                        vals=['forg', 'adapt_rul', 'reform']
                     ),
                     drc.NamedSlider(
-                        name="Allocation Unfairness",
-                        id='slider-y',
+                        name="Initial Allocation Unfairness",
+                        id='slider-u',
                         marks={i/10: i/10 for i in range(10)},
                         min=0,
                         max=1,
@@ -53,8 +55,8 @@ app.layout = html.Div([
                         vertical=False
                     ),
                     drc.NamedSlider(
-                        name="Non-Compliance",
-                        id='slider-x',
+                        name="Initial Non-Compliance",
+                        id='slider-pcheat',
                         marks={i/10: i/10 for i in range(10)},
                         min=0,
                         max=1,
@@ -83,7 +85,7 @@ app.layout = html.Div([
                     html.Div(id='timeline-data', style={'display': 'none'}),
                     html.Button(
                         'Run Simulation',
-                        id='button-run-operation',
+                        id='button-run',
                         style={'margin-right': '10px', 'margin-top': '5px'}
                     ),
                     html.Button(
@@ -108,21 +110,34 @@ def restart_simulation(_):
 
 @app.callback(
     Output('timeline-data', 'children'),
-    [Input('button-run-operation', 'n_clicks')])
-def gen_timeline_data(_):
+    [Input('button-run', 'n_clicks')],
+    [State('slider-u', 'value'),
+     State('slider-pcheat', 'value'),
+     State('check-config-options', 'values')])
+def gen_timeline_data(_, u, disob, features):
     # starts new simulation and resets the timeline
     if not fakemode:
+        # U (alloc unfairness) - [0,1]
+        # Disob - [0,1]
+        # Forg - {off, general, [oppresion]}
+        # Reform - {on, off}
+        # AdaptRul - {off, fixed, adaptive} TODO: dropdown?
+        forg = 'general' if 'forg' in features else 'oppression'
+        reform = 'on' if 'reform' in features else 'off'
+        adapt_rul = 'fixed' if 'adapt_rul' in features else 'off'
+
         sim_cmd = ("erl -compile pardon -compile aux -compile dataio && "
-                   "erl -noshell -s pardon main "
-                   "0.0 1.0 general on off political"
-                   "  -s init stop")
+                   "erl -noshell -s pardon main {} {} {} {} {} political"
+                   " -s init stop").format(u, disob, forg, reform, adapt_rul)
         print("Starting new execution...")
+        print(sim_cmd)
         os.system(sim_cmd)
         print("Execution finished")
 
     try:
         data = pd.read_csv(sim_path)
-    except FileNotFoundError:
+    except FileNotFoundError as error:
+        print(error)
         data = None
     return data.to_json(orient='split')
 
@@ -159,8 +174,8 @@ def update_timeline(interval, timeline_json):
 
 @app.callback(
     Output('phase-plot', 'figure'),
-    [Input('slider-x', 'value'),
-     Input('slider-y', 'value')])
+    [Input('slider-pcheat', 'value'),
+     Input('slider-u', 'value')])
 def update_figure(PCheat, U):
     return {
         'data': [

@@ -429,11 +429,6 @@ main([AllocUnfairness, PCheatInit,
       ForgivenessMethod, Reformation,
       UpdateAlloc, Ideology]) ->
 
-    %% RunTitle = io_lib:format("pardon-time-Ext1~w-Ext2~w-UpAlloc~w-Uinit~w-Cinit~w-~w",
-    %%                          [FORGIVENESS, REFORMATION, UPALLOC,
-    %%                           ALLOCATION_UNFAIRNESS, PCHEAT_INIT,
-    %%                           IDEOLOGY]),
-
     register(main, self()),
     register(dataio, spawn(dataio, data_collector, [#{}])),
 
@@ -452,7 +447,7 @@ main([AllocUnfairness, PCheatInit,
 main(WrongParams) ->
     io:format("Wrong params! ~w", [WrongParams]).
 
-%% TimeSeries =
+%% Presets:
 %%     %% U  PCheat, Forg, Reform, UpAlloc
 %%     [{0.0, 0.0, off, off, off}, % base fair
 %%      {0.0, 0.5, off, off, off}, % base unjustified
