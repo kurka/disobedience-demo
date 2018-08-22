@@ -1,7 +1,8 @@
+import os
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
 import pandas as pd
 import dash_reusable_components as drc
@@ -11,8 +12,9 @@ PCheatInit = 0.3
 UInit = 0.25
 PhaseSize = 450
 
-fakemode = True
-fakedata = pd.read_csv("sample.csv")
+fakemode = False
+# here is one I made earlier...
+sim_path = "data/livedata.csv" if not fakemode else "data/sample.csv"
 
 app = dash.Dash(__name__)
 app.layout = html.Div([
@@ -84,26 +86,45 @@ app.layout = html.Div([
                         id='button-run-operation',
                         style={'margin-right': '10px', 'margin-top': '5px'}
                     ),
+                    html.Button(
+                        'Pause',
+                        id='button-pause',
+                        style={'margin-top': '5px'}
+                    )
                 ]
             )
         ])
     ])
 ])
 
-if fakemode:  # here is one I made earlier...
-    @app.callback(
-        Output('timeline-data', 'children'),
-        [Input('timeline-update', 'n_intervals')])
-    def gen_timeline_data(interval):
-        selection = fakedata[:5*interval]
-        return selection.to_json(orient='split')
 
-    @app.callback(
-        Output('timeline-update', 'n_intervals'),
-        [Input('button-run-operation', 'n_clicks')])
-    def restart_simulation(interval):
-        # resets the tineline
-        return 0
+@app.callback(
+    Output('timeline-update', 'n_intervals'),
+    [Input('timeline-data', 'children')])
+def restart_simulation(_):
+    # resets the timeline counter
+    return 0
+
+
+@app.callback(
+    Output('timeline-data', 'children'),
+    [Input('button-run-operation', 'n_clicks')])
+def gen_timeline_data(_):
+    # starts new simulation and resets the timeline
+    if not fakemode:
+        sim_cmd = ("erl -compile pardon -compile aux -compile dataio && "
+                   "erl -noshell -s pardon main "
+                   "0.0 1.0 general on off political"
+                   "  -s init stop")
+        print("Starting new execution...")
+        os.system(sim_cmd)
+        print("Execution finished")
+
+    try:
+        data = pd.read_csv(sim_path)
+    except FileNotFoundError:
+        data = None
+    return data.to_json(orient='split')
 
 
 def col2trace(xdata, ydata, title):
@@ -112,10 +133,10 @@ def col2trace(xdata, ydata, title):
 
 @app.callback(
     Output('timeline', 'figure'),
-    [Input('timeline-data', 'children')])
-def update_timeline(timeline_json):
-    # TODO: check if erlang will send this same orientation
-    timeline_df = pd.read_json(timeline_json, orient='split')
+    [Input('timeline-update', 'n_intervals')],
+    [State('timeline-data', 'children')])
+def update_timeline(interval, timeline_json):
+    timeline_df = pd.read_json(timeline_json, orient='split')[:5*interval]
     tsteps = timeline_df.index+1
 
     timeline_keys = [
