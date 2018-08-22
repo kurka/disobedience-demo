@@ -193,7 +193,7 @@ def update_figure(PCheat, U):
             showlegend=False,
             width=PhaseSize,
             height=PhaseSize,
-            xaxis=dict(
+            yaxis=dict(
                 title="Disobedience",
                 range=[0, 1],
                 fixedrange=True,
@@ -203,7 +203,7 @@ def update_figure(PCheat, U):
                 linecolor='#636363',
                 linewidth=6
             ),
-            yaxis=dict(
+            xaxis=dict(
                 title="Allocation Unfairness",
                 range=[0, 1],
                 fixedrange=True,
