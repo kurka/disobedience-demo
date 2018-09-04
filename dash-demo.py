@@ -87,7 +87,8 @@ app.layout = html.Div([
                 html.Div(className='centering',
                          style={
                              'margin-left': 'auto',
-                             'margin-right': 'auto'
+                             'margin-right': 'auto',
+                             'width': '35em'
                          },
                          children=[
                              dcc.Graph(id='phase-plot',
@@ -100,7 +101,15 @@ app.layout = html.Div([
                 style={'float': 'right'},
                 children=[
                     dcc.Graph(id='timeline'),
-                    dcc.Graph(id='bar-stats'),
+                    html.Div(className='centering',
+                             style={
+                                 'margin-left': 'auto',
+                                 'margin-right': 'auto',
+                                 'width': '45em'
+                             },
+                             children=[
+                                 dcc.Graph(id='bar-stats'),
+                             ]),
                     dcc.Interval(id='timeline-update',
                                  interval=1000, n_intervals=0),
                     # Hidden Div storing JSON-serialized data
@@ -124,12 +133,20 @@ def restart_simulation(_):
     Output('timeline-update', 'interval'),
     [Input('button-pause', 'n_clicks')])
 def pause(n_clicks):
-    print("HEY!")
-    print(n_clicks)
-    if bool(n_clicks % 2):
+    if n_clicks and bool(n_clicks % 2):
         return 1000*60*60*3
     else:
         return 1000
+
+
+@app.callback(
+    Output('button-pause', 'children'),
+    [Input('button-pause', 'n_clicks')])
+def pause(n_clicks):
+    if n_clicks and bool(n_clicks % 2):
+        return "RESUME"
+    else:
+        return "PAUSE"
 
 
 @app.callback(
