@@ -6,7 +6,7 @@
 %% -define(FORGIVE_METHOD, general). %values: [general, personal, off]
 
 % game constants
--define(SIMULATION_LENGTH, 2000).
+-define(SIMULATION_LENGTH, 1000).
 -define(NUM_AGENTS, 50).
 -define(RULERS_SIZE, ?NUM_AGENTS div 5). %1/5 of agents are rulers
 -define(POLICE_SIZE, ?RULERS_SIZE).

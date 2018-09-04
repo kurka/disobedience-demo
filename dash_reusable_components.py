@@ -229,6 +229,9 @@ def NamedInlineCheckboxes(name, short, options, vals, **kwargs):
                 id=f'check-{short}',
                 options=options,
                 values=vals,
+                inputStyle={
+                    'margin-left': '7px'
+                },
                 labelStyle={
                     'display': 'inline-block',
                     'margin-right': '7px',

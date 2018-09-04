@@ -10,11 +10,14 @@ import dash_reusable_components as drc
 
 PCheatInit = 0.3
 UInit = 0.25
-PhaseSize = 450
+PhaseSize = 500
 
 fakemode = False
 # here is one I made earlier...
 sim_path = "data/livedata.csv" if not fakemode else "data/sample.csv"
+
+# compile erlang programs, just in case...
+os.system("erl -compile pardon && erl -compile aux && erl -compile dataio")
 
 app = dash.Dash(__name__)
 app.layout = html.Div([
@@ -68,35 +71,40 @@ app.layout = html.Div([
                         step=0.01,
                         updatemode='drag'
                     ),
+                    html.Button(
+                        'Run Simulation',
+                        id='button-run',
+                        style={'margin-right': '10px', 'margin-top': '5px'}
+                    ),
+                    html.Button(
+                        'Pause',
+                        id='button-pause',
+                        style={'margin-top': '5px'}
+                    )
                 ]),
 
 
-                dcc.Graph(id='phase-plot',
-                          config={'displayModeBar': False}),
-
+                html.Div(className='centering',
+                         style={
+                             'margin-left': 'auto',
+                             'margin-right': 'auto'
+                         },
+                         children=[
+                             dcc.Graph(id='phase-plot',
+                                       config={'displayModeBar': False}),
+                         ]),
             ]),
 
             html.Div(
                 className='seven columns',
                 style={'float': 'right'},
                 children=[
-                    dcc.Graph(
-                        id='timeline',
-                    ),
+                    dcc.Graph(id='timeline'),
+                    dcc.Graph(id='bar-stats'),
                     dcc.Interval(id='timeline-update',
                                  interval=1000, n_intervals=0),
                     # Hidden Div storing JSON-serialized data
                     html.Div(id='timeline-data', style={'display': 'none'}),
-                    html.Button(
-                        'Run Simulation',
-                        id='button-run',
-                        style={'margin-right': '10px', 'margin-top': '5px'}
-                    ),
-                    # html.Button(
-                    #     'Pause',
-                    #     id='button-pause',
-                    #     style={'margin-top': '5px'}
-                    # )
                 ]
             )
         ])
@@ -110,6 +118,18 @@ app.layout = html.Div([
 def restart_simulation(_):
     # resets the timeline counter
     return 0
+
+
+@app.callback(
+    Output('timeline-update', 'interval'),
+    [Input('button-pause', 'n_clicks')])
+def pause(n_clicks):
+    print("HEY!")
+    print(n_clicks)
+    if bool(n_clicks % 2):
+        return 1000*60*60*3
+    else:
+        return 1000
 
 
 @app.callback(
@@ -130,9 +150,7 @@ def gen_timeline_data(_, u, disob, features):
         reform = 'on' if 'reform' in features else 'off'
         adapt_rul = 'fixed' if 'adapt_rul' in features else 'off'
 
-        # FIXME: in future dont need to always compile (move .beam?)
-        sim_cmd = ("erl -compile pardon -compile aux -compile dataio && "
-                   "erl -noshell -s pardon main {:.2f} {:.2f} {} "
+        sim_cmd = ("erl -noshell -s pardon main {:.2f} {:.2f} {} "
                    "{} {} political -s init stop").format(u, disob, forg,
                                                           reform, adapt_rul)
         print("Starting new execution...")
@@ -161,11 +179,11 @@ def update_timeline(interval, timeline_json):
     tsteps = timeline_df.index+1
 
     timeline_keys = [
-        ("alloc_unfairness", "Alloc Unfairness (U)"),
-        ("inequality", "Inequality"),
-        ("people_noncompliance", "Disobedience"),
+        ("satisf_people", "People's Satisfaction"),
         ("satisf_clique", "Rulers' Satisfaction"),
-        ("satisf_people", "People's Satisfaction")
+        ("inequality", "Inequality"),
+        ("alloc_unfairness", "Alloc Unfairness (U)"),
+        ("people_noncompliance", "Disobedience"),
     ]
 
     traces = [col2trace(tsteps, timeline_df[tk[0]], tk[1])
@@ -176,6 +194,33 @@ def update_timeline(interval, timeline_json):
         layout={'title': 'Timeline',
                 'xaxis': {'title': 'turn'}}
     )
+
+
+@app.callback(
+    Output('bar-stats', 'figure'),
+    [Input('timeline-update', 'n_intervals')],
+    [State('timeline-data', 'children')])
+def update_barstats(interval, timeline_json):
+    timeline_data = pd.read_json(timeline_json, orient='split')
+    last_timeline_row = timeline_data.iloc[5*interval]
+
+    stat_keys = [
+        ("satisf_people", "People's Satisfaction"),
+        ("satisf_clique", "Rulers' Satisfaction"),
+        ("inequality", "Inequality"),
+    ]
+
+    traces = [go.Bar(x=[tk[1]],
+                     y=[last_timeline_row[tk[0]]],
+                     name=tk[1],
+                     width=[0.3],
+                     showlegend=False)
+              for tk in stat_keys]
+
+    return go.Figure(
+        data=traces,
+        layout=go.Layout(width=600,
+                         yaxis={'range': [0, 1]}))
 
 
 def fig_phaseplot(PCheat, U):
@@ -256,13 +301,13 @@ if __name__ == '__main__':
 # Open questions / TODOs:
 # - Interface:
 #    - center exploratory space
-#    - movable exploratory space
 #    - live changes / reset simulation / pause button
 #    - presets configurations
 #    - timeline updates exploratory space
 #    - some statistics (metrics) on the side?
 # - How to communicate from Erlang to program?
 # - Write python function that calls erlang program and reads json
+# - pause button
 
 
 # Python - Erlang communication
